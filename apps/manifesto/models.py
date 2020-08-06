@@ -1,0 +1,12 @@
+from django.db import models
+
+# Create your models here.
+class Value(models.Model):
+    value = models.CharField(max_length=250)
+    description = models.TextField()
+
+
+class Principle(models.Model):
+    principle = models.CharField(max_length=250)
+    description = models.TextField()
+
