@@ -1,8 +1,13 @@
 from django.db import models
 
-# Create your models here.
+required = {
+    'blank': False,
+    'null': False
+}
+
+
 class Value(models.Model):
-    value = models.CharField(max_length=250)
+    value = models.CharField(max_length=250, **required)
     description = models.TextField()
 
     def __str__(self):
@@ -10,7 +15,7 @@ class Value(models.Model):
 
 
 class Principle(models.Model):
-    principle = models.CharField(max_length=250)
+    principle = models.CharField(max_length=250, **required)
     description = models.TextField()
 
     def __str__(self):
