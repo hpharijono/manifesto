@@ -1,102 +1,118 @@
-import requests
-import pytest
-from rest_framework import status
-from apps.manifesto.models import Value
-from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
 
+from pytest_django.asserts import assertContains
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient, APITestCase
+
+from apps.manifesto.models import Value
 
 BASE_URL = 'http://127.0.0.1:8000/api'
 VALUES_URL = '{}/{}/'.format(BASE_URL, 'values')
 REQUIRED_ERROR = 'This field may not be blank.'
 
-def test_get_values_unauthorized():
-    response = requests.get(VALUES_URL)
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+class TestValues(APITestCase):
+    def setUp(self):
+        user = User.objects.get(username='user1')
 
-def test_get_values_list():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
-    
-    response = requests.get(VALUES_URL, headers=header)
+        if not user:
+            user = User(
+                username='harris',
+                email='harris@gmail.com',
+                first_name='Harris',
+                last_name='Harijono'
+            )
+            user.set_password('harris')
+            user.save()
 
-    assert response.status_code == status.HTTP_200_OK
+        token, created = Token.objects.get_or_create(user=user)
 
-def test_get_values_detail():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
-    
-    val = Value.objects.first()
-    
-    url = '{}{}'.format(VALUES_URL, val.pk)
-    response = requests.get(url, headers=header)
+        if token:
+            self.token = token.key
 
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()['value'] == val.value
-    assert response.json()['description'] == val.description
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
 
-def test_create_value():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
+    def test_get_values_unauthorized(self):
+        # create client without credentials
+        client = APIClient()
+        response = client.get(VALUES_URL)
 
-    data = {
-        "value": "Test value",
-        "description": "Test description",
-    }
-    values_count = Value.objects.count()
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = requests.post(VALUES_URL, headers=header, data=data)
+    def test_get_values_list(self):
+        response = self.client.get(VALUES_URL)
 
-    new_values_count = Value.objects.count()
+        assert response.status_code == status.HTTP_200_OK
 
-    assert response.status_code == status.HTTP_201_CREATED
-    assert values_count + 1 == new_values_count
-    assert response.json()['value'] == data['value']
-    assert response.json()['description'] == data['description']
+    def test_get_values_detail(self):
+        val = Value.objects.first()
 
-def test_create_value_missing_value():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
+        url = '{}{}/'.format(VALUES_URL, val.pk)
+        response = self.client.get(url, format='json')
 
-    data = {
-        "value": "",
-        "description": "Test description",
-    }
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['value'] == val.value
+        assert response.json()['description'] == val.description
 
-    response = requests.post(VALUES_URL, headers=header, data=data)
+    def test_create_value(self):
+        data = {
+            "value": "Test value",
+            "description": "Test description",
+        }
+        values_count = Value.objects.count()
 
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+        response = self.client.post(VALUES_URL, data, format='json')
 
-def test_update_value():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
+        new_values_count = Value.objects.count()
 
-    value = Value.objects.last()
-    data = {
-        "value": value.value,
-        "description": "Updated description",
-    }
+        assert response.status_code == status.HTTP_201_CREATED
+        assert values_count + 1 == new_values_count
+        assert response.json()['value'] == data['value']
+        assert response.json()['description'] == data['description']
 
-    url = '{}{}/'.format(VALUES_URL, value.pk)
-    response = requests.put(url, data=data, headers=header)
-    
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()['id'] == value.pk
-    assert response.json()['value'] == data['value']
-    assert response.json()['description'] == data['description']
+    def test_create_value_missing_value(self):
+        data = {
+            "value": "",
+            "description": "Test description",
+        }
 
-def test_delete_value():
-    token = Token.objects.first()
-    header = {'Authorization' : 'Token {}'.format(token)}
+        response = self.client.post(VALUES_URL, data, format='json')
 
-    value = Value.objects.last()
-    values_count = Value.objects.count()
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    url = '{}{}'.format(VALUES_URL, value.pk)
+    def test_update_value(self):
+        value = Value.objects.last()
+        data = {
+            "value": value.value,
+            "description": "Updated description",
+        }
 
-    response = requests.delete(url, headers=header)
+        url = '{}{}/'.format(VALUES_URL, value.pk)
+        response = self.client.put(url, data, format='json')
 
-    new_values_count = Value.objects.count()
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()['id'] == value.pk
+        assert response.json()['value'] == data['value']
+        assert response.json()['description'] == data['description']
 
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert new_values_count == values_count - 1 
+    def test_delete_value(self):
+        value = Value.objects.last()
+        values_count = Value.objects.count()
+
+        url = '{}{}/'.format(VALUES_URL, value.pk)
+
+        response = self.client.delete(url)
+
+        new_values_count = Value.objects.count()
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert new_values_count == values_count - 1 
+
+
+
+
+
+
+
