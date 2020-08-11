@@ -18,7 +18,7 @@ class TestValues(APITestCase):
 
         if not user:
             user = User(
-                username='harris',
+                username='harris1',
                 email='harris@gmail.com',
                 first_name='Harris',
                 last_name='Harijono'

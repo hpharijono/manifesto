@@ -14,9 +14,9 @@ class TestUser(APITestCase):
         self.User = get_user_model()
 
         # Fix the passwords of fixtures
-        for user in self.User.objects.all():
-            user.set_password(user.password)
-            user.save()
+        # for user in self.User.objects.all():
+        #     user.set_password(user.password)
+        #     user.save()
 
         self.client = APIClient()
 
@@ -31,8 +31,8 @@ class TestUser(APITestCase):
         # user.save()
 
         body = {
-            "username": "user1",
-            "password": "user1"
+            "username": "admin",
+            "password": "admin"
         }
 
         response = self.client.post(AUTH_URL, body, format='json')

@@ -18,7 +18,7 @@ pipenv install
 pipenv shell
 python manage.py migrate
 python manage.py createsuperuser --username admin
-python manage.py loaddata values principles
+python manage.py loaddata users values principles
 python manage.py runserver
 ```
 
