@@ -1,110 +1,94 @@
+import pytest
+
 from django.contrib.auth.models import User
 
-from pytest_django.asserts import assertContains
 from rest_framework import status
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient
 
 from apps.manifesto.models import Principle
+from conftest import client
 
-BASE_URL = 'http://127.0.0.1:8000/api'
-PRINCIPLES_URL = '{}/{}/'.format(BASE_URL, 'principles')
+PRINCIPLES_URL = '/{}/{}/'.format('api', 'principles')
 
+@pytest.mark.django_db
+def test_get_principles_unauthorized(client):
+    # create client without credentials
+    client = APIClient()
+    response = client.get(PRINCIPLES_URL)
 
-class TestPriciples(APITestCase):
-    def setUp(self):
-        user = User.objects.get(username='user1')
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        if not user:
-            user = User(
-                username='harris2',
-                email='harris@gmail.com',
-                first_name='Harris',
-                last_name='Harijono'
-            )
-            user.set_password('harris')
-            user.save()
+@pytest.mark.django_db
+def test_get_principles_list(client):
+    response = client.get(PRINCIPLES_URL)
 
-        token, created = Token.objects.get_or_create(user=user)
+    assert response.status_code == status.HTTP_200_OK
 
-        if token:
-            self.token = token.key
+@pytest.mark.django_db
+def test_get_principles_detail(client):
+    principle = Principle.objects.first()
+    
+    url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
+    response = client.get(url)
 
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()['principle'] == principle.principle
+    assert response.json()['description'] == principle.description
 
-    def test_get_principles_unauthorized(self):
-        # create client without credentials
-        client = APIClient()
-        response = client.get(PRINCIPLES_URL)
+@pytest.mark.django_db
+def test_create_principle(client):
+    data = {
+        "principle": "Test principle",
+        "description": "Test description",
+    }
+    principles_count = Principle.objects.count()
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    response = client.post(PRINCIPLES_URL, data, format='json')
 
-    def test_get_principles_list(self):
-        response = self.client.get(PRINCIPLES_URL)
+    new_principles_count = Principle.objects.count()
 
-        assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
+    assert principles_count + 1 == new_principles_count
+    assert response.json()['principle'] == data['principle']
+    assert response.json()['description'] == data['description']
 
-    def test_get_principles_detail(self):
-        principle = Principle.objects.first()
-        
-        url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
-        response = self.client.get(url)
+@pytest.mark.django_db
+def test_create_principle_missing_value(client):
+    data = {
+        "principle": "",
+        "description": "Test description",
+    }
 
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()['principle'] == principle.principle
-        assert response.json()['description'] == principle.description
+    response = client.post(PRINCIPLES_URL, data)
 
-    def test_create_principle(self):
-        data = {
-            "principle": "Test principle",
-            "description": "Test description",
-        }
-        principles_count = Principle.objects.count()
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-        response = self.client.post(PRINCIPLES_URL, data, format='json')
+@pytest.mark.django_db
+def test_update_value(client):
+    principle = Principle.objects.last()
+    data = {
+        "principle": principle.principle,
+        "description": "Updated principle description",
+    }
 
-        new_principles_count = Principle.objects.count()
+    url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
+    response = client.put(url, data)
+    
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()['id'] == principle.pk
+    assert response.json()['principle'] == principle.principle
+    assert response.json()['description'] == data['description']
 
-        assert response.status_code == status.HTTP_201_CREATED
-        assert principles_count + 1 == new_principles_count
-        assert response.json()['principle'] == data['principle']
-        assert response.json()['description'] == data['description']
+@pytest.mark.django_db
+def test_delete_principle(client):
+    principle = Principle.objects.last()
+    principles_count = Principle.objects.count()
 
-    def test_create_principle_missing_value(self):
-        data = {
-            "principle": "",
-            "description": "Test description",
-        }
+    url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
 
-        response = self.client.post(PRINCIPLES_URL, data)
+    response = client.delete(url)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+    new_principles_count = Principle.objects.count()
 
-    def test_update_value(self):
-        principle = Principle.objects.last()
-        data = {
-            "principle": principle.principle,
-            "description": "Updated principle description",
-        }
-
-        url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
-        response = self.client.put(url, data)
-        
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()['id'] == principle.pk
-        assert response.json()['principle'] == principle.principle
-        assert response.json()['description'] == data['description']
-
-    def test_delete_principle(self):
-        principle = Principle.objects.last()
-        principles_count = Principle.objects.count()
-
-        url = '{}{}/'.format(PRINCIPLES_URL, principle.pk)
-
-        response = self.client.delete(url)
-
-        new_principles_count = Principle.objects.count()
-
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert new_principles_count == principles_count - 1 
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert new_principles_count == principles_count - 1 
