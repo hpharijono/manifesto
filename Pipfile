@@ -7,6 +7,7 @@ verify_ssl = true
 flake8 = "*"
 mypy = "*"
 bandit = "*"
+black = "~=19.10b0"
 
 [packages]
 django = "~=3.1"
@@ -16,3 +17,6 @@ pytest-django = "*"
 
 [requires]
 python_version = "3.8"
+
+[pipenv]
+allow_prereleases = true
