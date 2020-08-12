@@ -21,12 +21,12 @@ from rest_framework.authtoken.views import obtain_auth_token
 from apps.manifesto.views import ValueViewSet, PrincipleViewSet
 
 router = DefaultRouter()
-router.register('values', ValueViewSet)
-router.register('principles', PrincipleViewSet)
+router.register("values", ValueViewSet)
+router.register("principles", PrincipleViewSet)
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
-    path('api/token/', obtain_auth_token, name='api_token_auth'),
+    path("admin/", admin.site.urls),
+    path("api/", include(router.urls)),
+    path("api/token/", obtain_auth_token, name="api_token_auth"),
 ]

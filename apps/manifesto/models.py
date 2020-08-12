@@ -1,9 +1,6 @@
 from django.db import models
 
-required = {
-    'blank': False,
-    'null': False
-}
+required = {"blank": False, "null": False}
 
 
 class Value(models.Model):
@@ -20,4 +17,3 @@ class Principle(models.Model):
 
     def __str__(self):
         return self.principle
-
