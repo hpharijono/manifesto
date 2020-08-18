@@ -1,13 +1,8 @@
 import pytest
 
-from django.contrib.auth.models import User
-from django.contrib.auth import get_user_model
-
 from pytest_django.asserts import assertContains
 from rest_framework import status
-from rest_framework.test import APIClient
 
-from conftest import client
 
 AUTH_URL = "/{}/{}/".format("api", "token")
 
